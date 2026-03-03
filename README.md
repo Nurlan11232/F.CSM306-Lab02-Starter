@@ -26,3 +26,5 @@ Testing [Parallel Sleeping Pool]... Done. Time: 0.0015s
 **tasksys.cpp (Implementation):** Дээрх классуудын логик буюу "биеийг" энд бичнэ. Thread үүсгэх, Mutex ашиглан түгжих, Condition Variable-оор сэрээх зэрэг С++ кодыг энд хэрэгжүүлнэ үү.
 Даалгаврыг 6 долоо хоногт шалгана. 
 
+
+g++ -std=c++17 -O2 main.cpp tasksys.cpp -o lab2 -pthread
