@@ -24,41 +24,43 @@ public:
     }
 };
 
+void runBenchmark(ITaskSystem *system, IRunnable *task, int num_tasks, const std::string &label)
+{
+    std::cout << "Testing [" << label << "]..." << std::flush;
+    auto start = std::chrono::high_resolution_clock::now();
+    system->run(task, num_tasks);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    std::cout << " Done. Time: " << std::fixed << std::setprecision(4)
+              << elapsed.count() << "s" << std::endl;
+}
+
 int main()
 {
     int num_threads = std::thread::hardware_concurrency();
     if (num_threads == 0) num_threads = 4;
+
+    int num_tasks          = 5000;
     int workload_intensity = 200;
 
     std::cout << "========================================" << std::endl;
-    std::cout << "Part II: Async with Dependencies" << std::endl;
-    std::cout << "Threads: " << num_threads << std::endl;
+    std::cout << "Part I: Task System Benchmark" << std::endl;
+    std::cout << "Threads: " << num_threads << ", Tasks: " << num_tasks << std::endl;
     std::cout << "========================================" << std::endl;
 
-    TaskSystemParallelThreadPoolSleepingAsync *s =
-        new TaskSystemParallelThreadPoolSleepingAsync(num_threads);
+    ComputeTask task(num_tasks, workload_intensity);
 
-    // Лаб-ын жишээ: A(128) -> B(2), C(6) -> D(32)
-    ComputeTask tA(128, workload_intensity);
-    ComputeTask tB(2,   workload_intensity);
-    ComputeTask tC(6,   workload_intensity);
-    ComputeTask tD(32,  workload_intensity);
+    { ITaskSystem *s = new TaskSystemSerial(num_threads);
+      runBenchmark(s, &task, num_tasks, "Serial System"); delete s; }
 
-    auto t0 = std::chrono::high_resolution_clock::now();
+    { ITaskSystem *s = new TaskSystemParallelSpawn(num_threads);
+      runBenchmark(s, &task, num_tasks, "Parallel Spawn"); delete s; }
 
-    TaskID idA = s->runAsyncWithDeps(&tA, 128, {});
-    TaskID idB = s->runAsyncWithDeps(&tB, 2,   {idA});
-    TaskID idC = s->runAsyncWithDeps(&tC, 6,   {idA});
-    TaskID idD = s->runAsyncWithDeps(&tD, 32,  {idB, idC});
+    { ITaskSystem *s = new TaskSystemParallelThreadPoolSpinning(num_threads);
+      runBenchmark(s, &task, num_tasks, "Parallel Spinning Pool"); delete s; }
 
-    s->sync();
+    { ITaskSystem *s = new TaskSystemParallelThreadPoolSleeping(num_threads);
+      runBenchmark(s, &task, num_tasks, "Parallel Sleeping Pool"); delete s; }
 
-    auto t1 = std::chrono::high_resolution_clock::now();
-
-    std::cout << "Testing [Async A(128)->B(2),C(6)->D(32)]... Done. Time: "
-              << std::fixed << std::setprecision(4)
-              << std::chrono::duration<double>(t1 - t0).count() << "s" << std::endl;
-
-    delete s;
     return 0;
 }
