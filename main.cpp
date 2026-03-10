@@ -40,7 +40,7 @@ int main()
     int num_threads = std::thread::hardware_concurrency();
     if (num_threads == 0) num_threads = 4;
 
-    int num_tasks         = 5000;
+    int num_tasks          = 5000;
     int workload_intensity = 200;
 
     std::cout << "========================================" << std::endl;
@@ -75,6 +75,40 @@ int main()
     {
         ITaskSystem *s = new TaskSystemParallelThreadPoolSleeping(num_threads);
         runBenchmark(s, &task, num_tasks, "Parallel Sleeping Pool");
+        delete s;
+    }
+
+    // ===== II ХЭСЭГ: Async + Dependencies =====
+    std::cout << "\n========================================" << std::endl;
+    std::cout << "Part II: Async with Dependencies" << std::endl;
+    std::cout << "========================================" << std::endl;
+
+    {
+        TaskSystemParallelThreadPoolSleepingAsync *s =
+            new TaskSystemParallelThreadPoolSleepingAsync(num_threads);
+
+        // Лаб-ын жишээ: A(128) -> B(2), C(6) -> D(32)
+        ComputeTask tA(128, workload_intensity);
+        ComputeTask tB(2,   workload_intensity);
+        ComputeTask tC(6,   workload_intensity);
+        ComputeTask tD(32,  workload_intensity);
+
+        auto t0 = std::chrono::high_resolution_clock::now();
+
+        TaskID idA = s->runAsyncWithDeps(&tA, 128, {});         // A: хамааралгүй
+        TaskID idB = s->runAsyncWithDeps(&tB, 2,   {idA});      // B: A дууссаны дараа
+        TaskID idC = s->runAsyncWithDeps(&tC, 6,   {idA});      // C: A дууссаны дараа
+        TaskID idD = s->runAsyncWithDeps(&tD, 32,  {idB, idC}); // D: B,C дууссаны дараа
+
+        s->sync();
+
+        auto t1 = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = t1 - t0;
+
+        std::cout << "Testing [Async A(128)->B(2),C(6)->D(32)]..."
+                  << " Done. Time: " << std::fixed << std::setprecision(4)
+                  << elapsed.count() << "s" << std::endl;
+
         delete s;
     }
 
