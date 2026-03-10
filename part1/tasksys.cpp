@@ -72,11 +72,7 @@ void TaskSystemParallelSpawn::run(IRunnable *runnable, int num_total_tasks)
 {
     std::vector<std::thread>threads;
     threads.reserve(num_threads_);
-    //
-    // TODO: CSM306 students will modify the implementation of this
-    // method in Part A.  The implementation provided below runs all
-    // tasks sequentially on the calling thread.
-    //
+
     int actual_threads = std:: min(num_threads_, num_total_tasks);
 
     for (int t = 0; t < actual_threads; t++)
