@@ -43,42 +43,27 @@ int main()
     int num_tasks          = 5000;
     int workload_intensity = 200;
 
+    // ===== I ХЭСЭГ =====
     std::cout << "========================================" << std::endl;
-    std::cout << "Task System Benchmark" << std::endl;
+    std::cout << "Part I: Task System Benchmark" << std::endl;
     std::cout << "Threads: " << num_threads << ", Tasks: " << num_tasks << std::endl;
     std::cout << "========================================" << std::endl;
 
     ComputeTask task(num_tasks, workload_intensity);
 
-    // 1. Serial System
-    {
-        ITaskSystem *s = new TaskSystemSerial(num_threads);
-        runBenchmark(s, &task, num_tasks, "Serial System");
-        delete s;
-    }
+    { ITaskSystem *s = new TaskSystemSerial(num_threads);
+      runBenchmark(s, &task, num_tasks, "Serial System"); delete s; }
 
-    // 2. Parallel Spawn
-    {
-        ITaskSystem *s = new TaskSystemParallelSpawn(num_threads);
-        runBenchmark(s, &task, num_tasks, "Parallel Spawn");
-        delete s;
-    }
+    { ITaskSystem *s = new TaskSystemParallelSpawn(num_threads);
+      runBenchmark(s, &task, num_tasks, "Parallel Spawn"); delete s; }
 
-    // 3. Parallel Spinning Pool
-    {
-        ITaskSystem *s = new TaskSystemParallelThreadPoolSpinning(num_threads);
-        runBenchmark(s, &task, num_tasks, "Parallel Spinning Pool");
-        delete s;
-    }
+    { ITaskSystem *s = new TaskSystemParallelThreadPoolSpinning(num_threads);
+      runBenchmark(s, &task, num_tasks, "Parallel Spinning Pool"); delete s; }
 
-    // 4. Parallel Sleeping Pool
-    {
-        ITaskSystem *s = new TaskSystemParallelThreadPoolSleeping(num_threads);
-        runBenchmark(s, &task, num_tasks, "Parallel Sleeping Pool");
-        delete s;
-    }
+    { ITaskSystem *s = new TaskSystemParallelThreadPoolSleeping(num_threads);
+      runBenchmark(s, &task, num_tasks, "Parallel Sleeping Pool"); delete s; }
 
-    // ===== II ХЭСЭГ: Async + Dependencies =====
+    // ===== II ХЭСЭГ =====
     std::cout << "\n========================================" << std::endl;
     std::cout << "Part II: Async with Dependencies" << std::endl;
     std::cout << "========================================" << std::endl;
@@ -87,7 +72,6 @@ int main()
         TaskSystemParallelThreadPoolSleepingAsync *s =
             new TaskSystemParallelThreadPoolSleepingAsync(num_threads);
 
-        // Лаб-ын жишээ: A(128) -> B(2), C(6) -> D(32)
         ComputeTask tA(128, workload_intensity);
         ComputeTask tB(2,   workload_intensity);
         ComputeTask tC(6,   workload_intensity);
@@ -95,19 +79,17 @@ int main()
 
         auto t0 = std::chrono::high_resolution_clock::now();
 
-        TaskID idA = s->runAsyncWithDeps(&tA, 128, {});         // A: хамааралгүй
-        TaskID idB = s->runAsyncWithDeps(&tB, 2,   {idA});      // B: A дууссаны дараа
-        TaskID idC = s->runAsyncWithDeps(&tC, 6,   {idA});      // C: A дууссаны дараа
-        TaskID idD = s->runAsyncWithDeps(&tD, 32,  {idB, idC}); // D: B,C дууссаны дараа
+        TaskID idA = s->runAsyncWithDeps(&tA, 128, {});
+        TaskID idB = s->runAsyncWithDeps(&tB, 2,   {idA});
+        TaskID idC = s->runAsyncWithDeps(&tC, 6,   {idA});
+        TaskID idD = s->runAsyncWithDeps(&tD, 32,  {idB, idC});
 
         s->sync();
 
         auto t1 = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> elapsed = t1 - t0;
-
-        std::cout << "Testing [Async A(128)->B(2),C(6)->D(32)]..."
-                  << " Done. Time: " << std::fixed << std::setprecision(4)
-                  << elapsed.count() << "s" << std::endl;
+        std::cout << "Testing [Async A(128)->B(2),C(6)->D(32)]... Done. Time: "
+                  << std::fixed << std::setprecision(4)
+                  << std::chrono::duration<double>(t1 - t0).count() << "s" << std::endl;
 
         delete s;
     }
